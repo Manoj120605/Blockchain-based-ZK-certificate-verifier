@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK-Proof Certificate Verifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            padding: 0.7rem 1.5rem;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .nav-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .result-section {
+            grid-column: 1 / -1;
+            margin-top: 2rem;
+        }
+        
+        .result {
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+        
+        .result.success {
+            background: rgba(46, 204, 113, 0.1);
+            border: 2px solid #2ecc71;
+            color: #27ae60;
+        }
+        
+        .result.error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+        }
+        
+        .result.loading {
+            background: rgba(52, 152, 219, 0.1);
+            border: 2px solid #3498db;
+            color: #2980b9;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .proof-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .proof-item {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .proof-item h4 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .proof-item p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        
+        .info-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-btn {
+                width: 200px;
+                text-align: center;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 ZK-Proof Certificate Verifier</h1>
+            <p class="subtitle">Verify digital certificates using Zero-Knowledge Proofs on Blockchain</p>
+            <div class="nav-buttons">
+                <a href="#verify" class="nav-btn">Verify Certificate</a>
+                <a href="#quick-verify" class="nav-btn">Quick Verify</a>
+                <a href="#analytics" class="nav-btn">Analytics</a>
+                <a href="#help" class="nav-btn">Help</a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>🛡️ ZK-Proof Verification</h2>
+                <form id="zkVerificationForm">
+                    <div class="form-group">
+                        <label for="certificateId">Certificate ID:</label>
+                        <input type="text" id="certificateId" placeholder="e.g., CERT_001" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="holderIdentifier">Holder Identifier:</label>
+                        <input type="text" id="holderIdentifier" placeholder="Your unique identifier" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="proofData">Zero-Knowledge Proof Data:</label>
+                        <textarea id="proofData" placeholder="challenge,response,commitment,publicKey" required></textarea>
+                        <small style="color: #7f8c8d;">Comma-separated values: challenge, response, commitment, public key</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="requestedFields">Requested Fields (Optional):</label>
+                        <input type="text" id="requestedFields" placeholder="issuer,type,degree">
+                        <small style="color: #7f8c8d;">Comma-separated fields to verify</small>
+                    </div>
+                    
+                    <button type="submit" class="btn">🔍 Verify with ZK-Proof</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>⚡ Quick Verification</h2>
+                <form id="quickVerificationForm">
+                    <div class="form-group">
+                        <label for="quickCertId">Certificate ID:</label>
+                        <input type="text" id="quickCertId" placeholder="e.g., CERT_001" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="blockchainHash">Blockchain Hash:</label>
+                        <input type="text" id="blockchainHash" placeholder="0x1a2b3c4d..." required>
+                    </div>
+                    
+                    <button type="submit" class="btn">🚀 Quick Verify</button>
+                </form>
+                
+                <div style="margin-top: 2rem;">
+                    <button id="generateChallenge" class="btn btn-success">🎲 Generate ZK Challenge</button>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <div id="verificationResult" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🌟 Zero-Knowledge Proof Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy Preserving</h3>
+                    <p>Verify credentials without revealing sensitive personal information</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⛓️</div>
+                    <h3>Blockchain Secured</h3>
+                    <p>Certificates stored immutably on blockchain with cryptographic proof</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Selective Disclosure</h3>
+                    <p>Choose exactly which certificate fields to prove and verify</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Verification</h3>
+                    <p>Instant cryptographic verification without centralized authority</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/certificates';
+        
+        // ZK-Proof Verification Form
+        document.getElementById('zkVerificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                certificateId: document.getElementById('certificateId').value,
+                holderIdentifier: document.getElementById('holderIdentifier').value,
+                proofData: document.getElementById('proofData').value,
+                requestedFields: document.getElementById('requestedFields').value,
+                verifierPublicKey: 'verifier_public_key_placeholder'
+            };
+            
+            await performVerification(`${API_BASE}/verify`, formData, 'ZK-Proof Verification');
+        });
+        
+        // Quick Verification Form
+        document.getElementById('quickVerificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const certId = document.getElementById('quickCertId').value;
+            const hash = document.getElementById('blockchainHash').value;
+            
+            await performQuickVerification(certId, hash);
+        });
+        
+        // Generate Challenge Button
+        document.getElementById('generateChallenge').addEventListener('click', async () => {
+            try {
+                showResult('loading', 'Generating ZK-proof challenge...');
+                
+                const response = await fetch(`${API_BASE}/generate-challenge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showChallengeResult(data);
+                } else {
+                    showResult('error', 'Failed to generate challenge');
+                }
+            } catch (error) {
+                showResult('error', `Error: ${error.message}`);
+            }
+        });
+        
+        async function performVerification(url, data, type) {
+            try {
+                showResult('loading', `Performing ${type}...`);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                showVerificationResult(result, type);
+                
+            } catch (error) {
+                showResult('error', `Error: ${error.message}`);
+            }
+        }
+        
+        async function performQuickVerification(certId, hash) {
+            try {
+                showResult('loading', 'Performing quick verification...');
+                
+                const response = await fetch(`${API_BASE}/quick-verify/${certId}?blockchainHash=${encodeURIComponent(hash)}`);
+                const result = await response.json();
+                showVerificationResult(result, 'Quick Verification');
+                
+            } catch (error) {
+                showResult('error', `Error: ${error.message}`);
+            }
+        }
+        
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('verificationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${type}`;
+            
+            if (type === 'loading') {
+                resultDiv.innerHTML = `<div class="loading-spinner"></div>${message}`;
+            } else {
+                resultDiv.innerHTML = message;
+            }
+        }
+        
+        function showVerificationResult(result, type) {
+            const resultDiv = document.getElementById('verificationResult');
+            resultDiv.style.display = 'block';
+            
+            if (result.valid || result.isValid) {
+                resultDiv.className = 'result success';
+                let html = `
+                    <h3>✅ ${type} Successful!</h3>
+                    <p><strong>Status:</strong> ${result.status}</p>
+                    <p><strong>Message:</strong> ${result.message}</p>
+                    <p><strong>Verification ID:</strong> ${result.verificationId}</p>
+                `;
+                
+                if (result.zkProofVerified !== undefined) {
+                    html += `<p><strong>ZK-Proof Verified:</strong> ${result.zkProofVerified ? '✅' : '❌'}</p>`;
+                }
+                
+                if (result.provenFields && Object.keys(result.provenFields).length > 0) {
+                    html += '<h4>Proven Fields:</h4><div class="proof-details">';
+                    for (const [key, value] of Object.entries(result.provenFields)) {
+                        html += `
+                            <div class="proof-item">
+                                <h4>${key}</h4>
+                                <p>${value}</p>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                }
+                
+                if (result.verifierSignature) {
+                    html += `<p><strong>Digital Signature:</strong> ${result.verifierSignature}</p>`;
+                }
+                
+                resultDiv.innerHTML = html;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ ${type} Failed</h3>
+                    <p><strong>Status:</strong> ${result.status}</p>
+                    <p><strong>Message:</strong> ${result.message}</p>
+                    <p><strong>Verification ID:</strong> ${result.verificationId}</p>
+                `;
+            }
+        }
+        
+        function showChallengeResult(data) {
+            const resultDiv = document.getElementById('verificationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result success';
+            
+            const validUntil = new Date(parseInt(data.validUntil));
+            
+            resultDiv.innerHTML = `
+                <h3>🎲 ZK-Proof Challenge Generated</h3>
+                <div class="proof-details">
+                    <div class="proof-item">
+                        <h4>Challenge</h4>
+                        <p>${data.challenge}</p>
+                    </div>
+                    <div class="proof-item">
+                        <h4>Timestamp</h4>
+                        <p>${new Date(parseInt(data.timestamp)).toLocaleString()}</p>
+                    </div>
+                    <div class="proof-item">
+                        <h4>Valid Until</h4>
+                        <p>${validUntil.toLocaleString()}</p>
+                    </div>
+                </div>
+                <p style="margin-top: 1rem; color: #7f8c8d; font-size: 0.9rem;">
+                    Use this challenge in your ZK-proof generation. Challenge expires in 5 minutes.
+                </p>
+            `;
+        }
+        
+        // Sample data population for demo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add sample data buttons
+            const zkForm = document.getElementById('zkVerificationForm');
+            const quickForm = document.getElementById('quickVerificationForm');
+            
+            // Sample data for ZK verification
+            const sampleZKBtn = document.createElement('button');
+            sampleZKBtn.type = 'button';
+            sampleZKBtn.className = 'btn btn-success';
+            sampleZKBtn.style.marginTop = '1rem';
+            sampleZKBtn.textContent = '📝 Use Sample Data';
+            sampleZKBtn.onclick = () => {
+                document.getElementById('certificateId').value = 'CERT_001';
+                document.getElementById('holderIdentifier').value = 'john_doe_2024';
+                document.getElementById('proofData').value = 'MTIzNDU2Nzg5MA==,987654321098765432109876543210,abcdef123456789,public_key_hash_123';
+                document.getElementById('requestedFields').value = 'issuer,type,degree';
+            };
+            zkForm.appendChild(sampleZKBtn);
+            
+            // Sample data for quick verification
+            const sampleQuickBtn = document.createElement('button');
+            sampleQuickBtn.type = 'button';
+            sampleQuickBtn.className = 'btn btn-success';
+            sampleQuickBtn.style.marginTop = '1rem';
+            sampleQuickBtn.textContent = '📝 Use Sample Data';
+            sampleQuickBtn.onclick = () => {
+                document.getElementById('quickCertId').value = 'CERT_001';
+                document.getElementById('blockchainHash').value = '0x1a2b3c4d5e6f7890abcdef1234567890fedcba0987654321';
+            };
+            quickForm.appendChild(sampleQuickBtn);
+        });
+        
+        // Smooth scrolling for navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+        });
+        
+        // Auto-refresh analytics every 30 seconds (if analytics section is visible)
+        setInterval(() => {
+            const analyticsSection = document.querySelector('#analytics');
+            if (analyticsSection && isElementInViewport(analyticsSection)) {
+                loadAnalytics();
+            }
+        }, 30000);
+        
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            );
+        }
+        
+        async function loadAnalytics() {
+            try {
+                const response = await fetch(`${API_BASE}/analytics`);
+                const data = await response.json();
+                // Update analytics display if section exists
+                console.log('Analytics data:', data);
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+    </script>
+</body>
+</html>
