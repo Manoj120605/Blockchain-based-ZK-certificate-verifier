@@ -31,8 +31,8 @@ Based on the files provided, here is a description for your GitHub README.md fil
 
 ### Getting Started ⚙️
 
-1.  **Clone the repository**: `git clone [repository-url]`
-2.  **Navigate to the project directory**: `cd [project-name]`
+1.  **Clone the repository**: `git clone https://github.com/Manoj120605/Blockchain-based-ZK-certificate-verifier.git`
+2.  **Navigate to the project directory**: `cd `
 3.  **Run the application**: `mvn spring-boot:run`
 
 [cite_start]The application will be accessible at `http://localhost:8080`[cite: 6]. [cite_start]You can access the H2 console at `http://localhost:8080/h2-console` and the API documentation at `http://localhost:8080/swagger-ui.html`[cite: 6].
